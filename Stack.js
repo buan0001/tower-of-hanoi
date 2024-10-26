@@ -2,6 +2,11 @@
 // Last in first out
 export default class Stack {
   tail = null;
+  name;
+
+  constructor(name) {
+    this.name = name;
+  }
 
   push(data) {
     const newNode = new Node(data);
@@ -11,7 +16,9 @@ export default class Stack {
 
   pop() {
     const prev = this.tail;
-    this.tail = prev.next;
+    if (prev) {
+      this.tail = prev.next;
+    }
 
     return prev;
   }

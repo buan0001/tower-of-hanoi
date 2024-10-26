@@ -2,9 +2,9 @@ import Stack from "./Stack.js";
 
 window.addEventListener("load", start);
 
-const RING_AMOUNT = 3;
-let moves_used = 0;
-const pins = { pin1: new Stack(), pin2: new Stack(), pin3: new Stack() };
+const RING_AMOUNT = 8;
+let movesCounter = 0;
+const pins = { pin1: new Stack("from"), pin2: new Stack("via"), pin3: new Stack("to") };
 // const pin1 = new Stack();
 // const pin2 = new Stack();
 // const pin3 = new Stack();
@@ -15,7 +15,8 @@ function start() {
   pins.forEach((pin) => {
     pin.addEventListener("click", () => pinClicked(pin.id));
   });
-  document.querySelector("#solve-btn").addEventListener("click", solveTowers);
+  document.querySelector("#solve-btn").addEventListener("click", autoSolve);
+  document.querySelector("#reset-btn").addEventListener("click", resetGame);
 
   createRings();
   updateDisplay();
@@ -29,7 +30,7 @@ function createRings() {
 }
 
 function updateDisplay() {
-  document.querySelector("#moves-display").innerHTML = moves_used;
+  document.querySelector("#moves-display").innerHTML = movesCounter;
   for (const pin in pins) {
     const firstPin = document.querySelector(`#${pin}`);
 
@@ -47,18 +48,6 @@ function updateDisplay() {
 
       nextNode = nextNode.next;
     }
-
-    // const amountOfRings = pins[pin].size();
-    // for (let index = 0; index < amountOfRings; index++) {
-    //   const element = document.createElement("div");
-
-    //   element.classList.add("ring");
-    //   element.style.setProperty("--RING_WIDTH", (index + 1) * 27 + "px");
-    //   element.style.setProperty("--RING_BOTTOM", (amountOfRings - index - 1) * 30 + "px");
-
-    //   firstPin.insertAdjacentElement("beforeend", element);
-    //   console.log("Element:", element);
-    // }
   }
 }
 
@@ -83,7 +72,7 @@ function pinClicked(pinId) {
     if (ringToMove?.data < newStack.peek()?.data || newStack.peek() == null) {
       const movingRing = selected.pop();
       newStack.push(movingRing.data);
-      moves_used++;
+      movesCounter++;
       updateDisplay();
       selected = null;
       if (newStack == pins["pin3"] && newStack.size() == RING_AMOUNT) {
@@ -96,10 +85,66 @@ function pinClicked(pinId) {
   }
 }
 
+function resetGame() {
+  console.log("reset clicked");
 
-// TODO: Make solver
+  for (const pin in pins) {
+    while (pins[pin].pop());
+  }
 
-function solveTowers(){
-  console.log("solving towers!");
-  
+  movesCounter = 0;
+  createRings();
+  updateDisplay();
 }
+
+function autoSolve() {
+  console.log("solving towers!");
+
+    if (pins["pin1"].size() !== RING_AMOUNT) {
+      resetGame()
+    }
+  recursiveSolver(RING_AMOUNT, pins["pin1"], pins["pin3"], pins["pin2"]);
+}
+
+//                             pin1, pin3, pin2
+function recursiveSolver(rings, src, dest, aux) {
+  if (rings == 1) {
+    const ring = src.pop();
+    dest.push(ring.data);
+    console.log(`Move ring 1 from ${src} to ${dest}`);
+    updateDisplay();
+    movesCounter++;
+    return;
+  } else {
+    recursiveSolver(rings - 1, src, aux, dest);
+    console.log(`Move ring ${rings} from ${src} to ${dest}`);
+    const ring = src.pop();
+    dest.push(ring.data);
+    movesCounter++;
+    updateDisplay();
+    recursiveSolver(rings - 1, aux, dest, src);
+  }
+  updateDisplay();
+}
+
+// const ring = src.pop();
+// dest.push(ring.data);
+
+// const nextRing = src.pop();
+// aux.push(nextRing.data);
+
+// const nextNext = dest.pop();
+// aux.push(nextNext.data);
+
+// const ringagain = src.pop();
+// dest.push(ringagain.data);
+
+// const ring1 = aux.pop();
+// src.push(ring1.data);
+
+// const ring2 = aux.pop();
+// dest.push(ring2.data);
+
+// const ring1again = src.pop();
+// dest.push(ring1again.data);
+// updateDisplay();
