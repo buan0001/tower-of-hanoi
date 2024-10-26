@@ -11,14 +11,15 @@
 }
 
 .pin {
-  min-width: 10px;
+  min-width: 30px;
   min-height: 300px;
   background-color: #333;
   position: relative;
 }
 
 .ring {
-  height: var(--RING_HEIGHT);
+  height: 15px;
+  width: var(--RING_WIDTH);
   bottom: var(--RING_BOTTOM);
   background-color: #ffcc00;
   border: 2px solid #000;
@@ -28,27 +29,6 @@
   transform: translateX(-50%);
 }
 
-.ring.small {
-  width: 60px;
+.selected{
+    background-color: red;
 }
-
-.ring.medium {
-  width: 80px;
-}
-
-.ring.large {
-  width: 100px;
-}
-
-/* Example positioning for rings on the first pin */
-/* #pin1 .ring:nth-child(1) {
-  bottom: 0;
-}
-
-#pin1 .ring:nth-child(2) {
-  bottom: 30px;
-}
-
-#pin1 .ring:nth-child(3) {
-  bottom: 60px;
-} */
