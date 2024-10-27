@@ -1,3 +1,4 @@
+import Queue from "./Queue.js";
 import Stack from "./Stack.js";
 
 window.addEventListener("load", start);
@@ -13,13 +14,49 @@ function start() {
   const pins = document.querySelectorAll(".pin");
 
   pins.forEach((pin) => {
-    pin.addEventListener("click", () => pinClicked(pin.id));
+    pin.addEventListener("click", (e) => {
+      console.log(e);
+      console.log(e.target.firstChild);
+
+      pinClicked(pin.id);
+    });
   });
   document.querySelector("#solve-btn").addEventListener("click", autoSolve);
   document.querySelector("#reset-btn").addEventListener("click", resetGame);
 
   createRings();
   updateDisplay();
+}
+
+function moveRing(ring, targetPin) {
+  // Save the initial X and Y coordinates since it will be lost on update
+  const startRect = ring.getBoundingClientRect();
+  // Update the display to change the ring's position
+  updateDisplay();
+
+  // Now the ring that has just moved will be the firstChild of the targetpin
+  const targetRing = targetPin.firstChild;
+  const endRect = targetRing.getBoundingClientRect();
+
+  // We can then take the difference between the initial position and the new one
+  const deltaX = startRect.left - endRect.left;
+  const deltaY = startRect.top - endRect.top;
+
+  targetRing.style.transition = "none";
+  targetRing.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+  // Force a reflow to apply the initial transform
+  targetRing.getBoundingClientRect();
+
+  // Apply the transition and move the targetRing to the target position
+  targetRing.style.transition = "transform 0.5s ease";
+  targetRing.style.transform = "translate(-50%, 0)";
+
+  targetRing.addEventListener("transitionend", function onTransitionEnd() {
+    targetRing.style.transition = "";
+    targetRing.style.transform = "";
+    targetRing.removeEventListener("transitionend", onTransitionEnd);
+  });
 }
 
 function createRings() {
@@ -52,14 +89,16 @@ function updateDisplay() {
 }
 
 function toggleSelectedDisplay(pinName) {
-  const firstPin = document.querySelector(`#${pinName}`);
-  const firstRing = firstPin.firstElementChild;
+  const selectedPin = document.querySelector(`#${pinName}`);
+  // console.log("selected pin:", selectedPin);
+
+  const firstRing = selectedPin.firstElementChild;
   firstRing.classList.toggle("selected");
 }
 
 let selected = null;
 function pinClicked(pinId) {
-  console.log("pin clicked, event:", pinId);
+  // console.log("pin clicked, event:", pinId);
 
   if (selected) {
     const newStack = pins[pinId];
@@ -71,9 +110,12 @@ function pinClicked(pinId) {
     const ringToMove = selected.peek();
     if (ringToMove?.data < newStack.peek()?.data || newStack.peek() == null) {
       const movingRing = selected.pop();
+
       newStack.push(movingRing.data);
+      const selectedPin = document.querySelector(`#${pinId}`);
+      const selectedRing = document.querySelector(".selected");
       movesCounter++;
-      updateDisplay();
+      moveRing(selectedRing, selectedPin);
       selected = null;
       if (newStack == pins["pin3"] && newStack.size() == RING_AMOUNT) {
         console.log("you win!");
@@ -86,65 +128,70 @@ function pinClicked(pinId) {
 }
 
 function resetGame() {
-  console.log("reset clicked");
-
   for (const pin in pins) {
     while (pins[pin].pop());
   }
-
+  if (solutionTimer) {
+    clearTimeout(solutionTimer);
+  }
+  selected = null;
   movesCounter = 0;
   createRings();
   updateDisplay();
+  solutionQueue = new Queue();
 }
 
 function autoSolve() {
   console.log("solving towers!");
 
-    if (pins["pin1"].size() !== RING_AMOUNT) {
-      resetGame()
-    }
-  recursiveSolver(RING_AMOUNT, pins["pin1"], pins["pin3"], pins["pin2"]);
+  resetGame();
+
+  recursiveSolver(RING_AMOUNT, "pin1", "pin3", "pin2");
+  // recursiveSolver(RING_AMOUNT, pins["pin1"], pins["pin3"], pins["pin2"]);
+
+  showSolution();
 }
 
-//                             pin1, pin3, pin2
 function recursiveSolver(rings, src, dest, aux) {
   if (rings == 1) {
-    const ring = src.pop();
-    dest.push(ring.data);
-    console.log(`Move ring 1 from ${src} to ${dest}`);
-    updateDisplay();
-    movesCounter++;
+    solutionQueue.enqueue(src);
+    solutionQueue.enqueue(dest);
     return;
   } else {
     recursiveSolver(rings - 1, src, aux, dest);
-    console.log(`Move ring ${rings} from ${src} to ${dest}`);
-    const ring = src.pop();
-    dest.push(ring.data);
-    movesCounter++;
-    updateDisplay();
+    solutionQueue.enqueue(src);
+    solutionQueue.enqueue(dest);
     recursiveSolver(rings - 1, aux, dest, src);
   }
   updateDisplay();
 }
+// function recursiveSolver(rings, src, dest, aux) {
+//   if (rings == 1) {
+//     const ring = src.pop();
+//     dest.push(ring.data);
+//     console.log(`Move ring 1 from ${src} to ${dest}`);
+//     updateDisplay();
+//     movesCounter++;
+//     return;
+//   } else {
+//     recursiveSolver(rings - 1, src, aux, dest);
+//     console.log(`Move ring ${rings} from ${src} to ${dest}`);
+//     const ring = src.pop();
+//     dest.push(ring.data);
+//     movesCounter++;
+//     updateDisplay();
+//     recursiveSolver(rings - 1, aux, dest, src);
+//   }
+//   updateDisplay();
+// }
 
-// const ring = src.pop();
-// dest.push(ring.data);
+let solutionQueue = new Queue();
+let solutionTimer;
+function showSolution() {
+  if (solutionQueue.peek()) {
+    // console.log(solutionQueue.peek());
 
-// const nextRing = src.pop();
-// aux.push(nextRing.data);
-
-// const nextNext = dest.pop();
-// aux.push(nextNext.data);
-
-// const ringagain = src.pop();
-// dest.push(ringagain.data);
-
-// const ring1 = aux.pop();
-// src.push(ring1.data);
-
-// const ring2 = aux.pop();
-// dest.push(ring2.data);
-
-// const ring1again = src.pop();
-// dest.push(ring1again.data);
-// updateDisplay();
+    pinClicked(solutionQueue.dequeue().data);
+    solutionTimer = setTimeout(showSolution, 500);
+  }
+}
